@@ -48,7 +48,7 @@ export default function Dashboard() {
       if (filters.status) params.status = filters.status;
       if (filters.search) params.search = filters.search;
 
-      const { data } = await eventsAPI.list(params);
+      const data = await eventsAPI.list(params);
       setEvents(data);
     } catch (error: any) {
       toast.error('Erro ao carregar eventos');

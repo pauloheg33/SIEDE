@@ -6,7 +6,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       users: {
@@ -34,6 +34,7 @@ export interface Database {
           is_active?: boolean
           created_at?: string
         }
+        Relationships: []
       }
       events: {
         Row: {
@@ -48,7 +49,7 @@ export interface Database {
           description: string | null
           tags: string[]
           schools: string[]
-          created_by: string
+          created_by: string | null
           created_at: string
           updated_at: string
         }
@@ -64,7 +65,7 @@ export interface Database {
           description?: string | null
           tags?: string[]
           schools?: string[]
-          created_by: string
+          created_by?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -80,10 +81,18 @@ export interface Database {
           description?: string | null
           tags?: string[]
           schools?: string[]
-          created_by?: string
+          created_by?: string | null
           created_at?: string
           updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "events_created_by_fkey"
+            columns: ["created_by"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       event_files: {
         Row: {
@@ -95,7 +104,7 @@ export interface Database {
           size: number
           url: string
           thumbnail_url: string | null
-          uploaded_by: string
+          uploaded_by: string | null
           created_at: string
         }
         Insert: {
@@ -107,7 +116,7 @@ export interface Database {
           size: number
           url: string
           thumbnail_url?: string | null
-          uploaded_by: string
+          uploaded_by?: string | null
           created_at?: string
         }
         Update: {
@@ -119,9 +128,23 @@ export interface Database {
           size?: number
           url?: string
           thumbnail_url?: string | null
-          uploaded_by?: string
+          uploaded_by?: string | null
           created_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "event_files_event_id_fkey"
+            columns: ["event_id"]
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_files_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       attendance: {
         Row: {
@@ -151,13 +174,21 @@ export interface Database {
           present?: boolean
           created_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_event_id_fkey"
+            columns: ["event_id"]
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       event_notes: {
         Row: {
           id: string
           event_id: string
           text: string
-          created_by: string
+          created_by: string | null
           created_at: string
           updated_at: string
         }
@@ -165,7 +196,7 @@ export interface Database {
           id?: string
           event_id: string
           text: string
-          created_by: string
+          created_by?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -173,11 +204,40 @@ export interface Database {
           id?: string
           event_id?: string
           text?: string
-          created_by?: string
+          created_by?: string | null
           created_at?: string
           updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "event_notes_event_id_fkey"
+            columns: ["event_id"]
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_notes_created_by_fkey"
+            columns: ["created_by"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      user_role: 'ADMIN' | 'TEC_FORMACAO' | 'TEC_ACOMPANHAMENTO'
+      event_type: 'FORMACAO' | 'PREMIACAO' | 'ENCONTRO' | 'OUTRO'
+      event_status: 'PLANEJADO' | 'REALIZADO' | 'ARQUIVADO'
+      file_kind: 'PHOTO' | 'DOC'
+    }
+    CompositeTypes: {
+      [_ in never]: never
     }
   }
 }
