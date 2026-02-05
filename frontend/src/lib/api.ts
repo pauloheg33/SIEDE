@@ -25,15 +25,8 @@ export const authAPI = {
     if (authError) throw authError;
     if (!authData.user) throw new Error('Registration failed');
 
-    // Create user profile
-    const { error: profileError } = await supabase.from('users').insert({
-      id: authData.user.id,
-      name: data.name,
-      email: data.email,
-      role: 'TEC_ACOMPANHAMENTO',
-    });
-
-    if (profileError) throw profileError;
+    // User profile is created automatically by the database trigger
+    // No need to insert manually
 
     return authData;
   },
