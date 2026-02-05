@@ -8,23 +8,40 @@ from typing import Optional
 
 from app.config import get_settings
 
-settings = get_settings()
-
 
 class StorageService:
     def __init__(self):
-        self.s3_client = boto3.client(
-            's3',
-            endpoint_url=settings.S3_ENDPOINT_URL,
-            aws_access_key_id=settings.S3_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.S3_SECRET_ACCESS_KEY,
-            region_name=settings.S3_REGION,
-            config=Config(signature_version='s3v4')
-        )
-        self.bucket_name = settings.S3_BUCKET_NAME
+        settings = get_settings()
+        self._configured = all([
+            settings.S3_ENDPOINT_URL,
+            settings.S3_ACCESS_KEY_ID,
+            settings.S3_SECRET_ACCESS_KEY,
+            settings.S3_BUCKET_NAME
+        ])
+        
+        if self._configured:
+            self.s3_client = boto3.client(
+                's3',
+                endpoint_url=settings.S3_ENDPOINT_URL,
+                aws_access_key_id=settings.S3_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.S3_SECRET_ACCESS_KEY,
+                region_name=settings.S3_REGION,
+                config=Config(signature_version='s3v4')
+            )
+            self.bucket_name = settings.S3_BUCKET_NAME
+            self.endpoint_url = settings.S3_ENDPOINT_URL
+        else:
+            self.s3_client = None
+            self.bucket_name = None
+            self.endpoint_url = None
+    
+    def _check_configured(self):
+        if not self._configured:
+            raise Exception("Storage not configured. Set S3 environment variables.")
     
     def upload_file(self, file_content: bytes, filename: str, content_type: str) -> str:
         """Upload file to S3 and return URL"""
+        self._check_configured()
         try:
             key = f"{uuid4()}_{filename}"
             self.s3_client.put_object(
@@ -34,7 +51,7 @@ class StorageService:
                 ContentType=content_type
             )
             # Generate URL
-            url = f"{settings.S3_ENDPOINT_URL}/{self.bucket_name}/{key}"
+            url = f"{self.endpoint_url}/{self.bucket_name}/{key}"
             return url
         except ClientError as e:
             raise Exception(f"Failed to upload file: {str(e)}")
@@ -73,6 +90,7 @@ class StorageService:
     
     def delete_file(self, url: str):
         """Delete file from S3 given its URL"""
+        self._check_configured()
         try:
             # Extract key from URL
             key = url.split(f"{self.bucket_name}/")[-1]
@@ -82,6 +100,7 @@ class StorageService:
     
     def get_presigned_url(self, url: str, expiration: int = 3600) -> str:
         """Generate presigned URL for accessing file"""
+        self._check_configured()
         try:
             key = url.split(f"{self.bucket_name}/")[-1]
             presigned_url = self.s3_client.generate_presigned_url(
@@ -94,4 +113,13 @@ class StorageService:
             raise Exception(f"Failed to generate presigned URL: {str(e)}")
 
 
-storage_service = StorageService()
+def get_storage_service():
+    return StorageService()
+
+
+storage_service = None
+
+
+def init_storage():
+    global storage_service
+    storage_service = StorageService()

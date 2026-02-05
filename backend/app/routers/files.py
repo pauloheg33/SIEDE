@@ -7,7 +7,7 @@ from app.database import get_db
 from app.schemas import FileUploadResponse
 from app.models import Event, EventFile, User, FileKind
 from app.auth import get_current_active_user, can_edit_event
-from app.storage import storage_service
+from app.storage import get_storage_service
 from app.audit import log_action
 
 router = APIRouter(prefix="/events/{event_id}/files", tags=["files"])
@@ -71,13 +71,14 @@ async def upload_files(
             )
         
         # Upload to storage
+        storage = get_storage_service()
         try:
             if kind == FileKind.PHOTO:
-                url, thumbnail_url = storage_service.upload_photo_with_thumbnail(
+                url, thumbnail_url = storage.upload_photo_with_thumbnail(
                     content, file.filename, content_type
                 )
             else:
-                url = storage_service.upload_file(content, file.filename, content_type)
+                url = storage.upload_file(content, file.filename, content_type)
                 thumbnail_url = None
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to upload file: {str(e)}")
@@ -155,10 +156,11 @@ def delete_file(
         raise HTTPException(status_code=404, detail="File not found")
     
     # Delete from storage
+    storage = get_storage_service()
     try:
-        storage_service.delete_file(file.url)
+        storage.delete_file(file.url)
         if file.thumbnail_url:
-            storage_service.delete_file(file.thumbnail_url)
+            storage.delete_file(file.thumbnail_url)
     except Exception as e:
         print(f"Warning: Failed to delete file from storage: {str(e)}")
     
