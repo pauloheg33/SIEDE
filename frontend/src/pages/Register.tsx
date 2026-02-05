@@ -38,7 +38,9 @@ export default function Register() {
       toast.success('Cadastro realizado com sucesso!');
       navigate('/dashboard');
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Erro ao cadastrar');
+      const message = error?.message || error?.error_description || 'Erro ao cadastrar';
+      toast.error(message);
+      console.error('Registration error:', error);
     }
   };
 

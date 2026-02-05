@@ -22,7 +22,9 @@ export default function Login() {
       toast.success('Login realizado com sucesso!');
       navigate('/dashboard');
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Erro ao fazer login');
+      const message = error?.message || error?.error_description || 'Erro ao fazer login';
+      toast.error(message);
+      console.error('Login error:', error);
     }
   };
 
