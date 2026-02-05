@@ -10,7 +10,7 @@ def log_action(
     action: str,
     entity: str,
     entity_id: str,
-    metadata: Optional[dict] = None
+    details: Optional[dict] = None
 ):
     """Create an audit log entry"""
     audit_log = AuditLog(
@@ -18,7 +18,7 @@ def log_action(
         action=action,
         entity=entity,
         entity_id=entity_id,
-        metadata=metadata or {}
+        details=details or {}
     )
     db.add(audit_log)
     db.commit()

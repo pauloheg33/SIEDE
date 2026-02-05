@@ -132,7 +132,7 @@ class AuditLog(Base):
     action = Column(String, nullable=False)
     entity = Column(String, nullable=False)
     entity_id = Column(String, nullable=False)
-    metadata = Column(JSON, default=dict)
+    details = Column(JSON, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     
     # Relationships
