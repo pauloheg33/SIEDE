@@ -10,6 +10,8 @@ import '@/styles/global.css';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import Dashboard from '@/pages/Dashboard';
+import EventForm from '@/pages/EventForm';
+import EventDetail from '@/pages/EventDetail';
 
 // Error component for missing configuration
 function ConfigError() {
@@ -86,6 +88,30 @@ function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/events/new"
+          element={
+            <ProtectedRoute>
+              <EventForm />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/events/:id"
+          element={
+            <ProtectedRoute>
+              <EventDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/events/:id/edit"
+          element={
+            <ProtectedRoute>
+              <EventForm />
             </ProtectedRoute>
           }
         />
