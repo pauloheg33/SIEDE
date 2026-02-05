@@ -1,95 +1,66 @@
 # SIEDE - Sistema de Evidências SME
 
-Sistema para gestão de eventos e evidências da Secretaria Municipal de Educação.
+Sistema para gestão de evidências e eventos da Secretaria Municipal de Educação.
 
-## Funcionalidades
+## 🚀 Tecnologias
 
-- **Gestão de Eventos**: Formações, premiações, encontros
-- **Upload de Fotos**: Galeria com thumbnails automáticos
-- **Upload de Documentos**: PDFs, planilhas, documentos
-- **Lista de Presença**: Registro de participantes com exportação CSV
-- **Observações**: Notas e histórico por evento
-- **Controle de Acesso**: 3 níveis (Admin, Técnico Formação, Técnico Acompanhamento)
+- **Frontend:** React 18 + TypeScript + Vite
+- **Backend:** Supabase (Auth, Database, Storage)
+- **Hosting:** GitHub Pages
 
-## Stack Tecnológica
-
-- **Frontend**: React 18 + TypeScript + Vite
-- **Backend**: Supabase (Auth, Database, Storage)
-- **Hospedagem**: GitHub Pages
-
-## Configuração
-
-### 1. Criar projeto no Supabase
-
-1. Acesse [supabase.com](https://supabase.com) e crie um novo projeto
-2. Copie a **URL** e **anon key** do projeto
-
-### 2. Executar migração do banco
-
-1. No Supabase, vá em **SQL Editor**
-2. Cole e execute o conteúdo de `supabase/migration.sql`
-
-### 3. Configurar variáveis de ambiente
-
-Crie `.env` na pasta `frontend`:
-
-```env
-VITE_SUPABASE_URL=https://seu-projeto.supabase.co
-VITE_SUPABASE_ANON_KEY=sua-anon-key
-```
-
-### 4. Desenvolvimento local
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Acesse: http://localhost:3000
-
-## Deploy no GitHub Pages
-
-### 1. Configurar Secrets no GitHub
-
-Vá em **Settings > Secrets and variables > Actions** e adicione:
-
-- `VITE_SUPABASE_URL`: URL do seu projeto Supabase
-- `VITE_SUPABASE_ANON_KEY`: Anon key do Supabase
-
-### 2. Habilitar GitHub Pages
-
-Vá em **Settings > Pages** e configure:
-- **Source**: GitHub Actions
-
-O deploy será automático a cada push na branch `main`.
-
-## Estrutura do Projeto
+## 📁 Estrutura
 
 ```
-├── frontend/
+├── frontend/          # Aplicação React
 │   ├── src/
-│   │   ├── components/    # Componentes reutilizáveis
-│   │   ├── lib/           # Supabase client e API
-│   │   ├── pages/         # Páginas da aplicação
-│   │   ├── store/         # Zustand stores
-│   │   ├── styles/        # CSS global
-│   │   └── types/         # TypeScript types
-│   └── package.json
+│   │   ├── components/   # Componentes reutilizáveis
+│   │   ├── pages/        # Páginas da aplicação
+│   │   ├── store/        # Estado global (Zustand)
+│   │   ├── lib/          # Supabase client e API
+│   │   └── types/        # Tipos TypeScript
+│   └── public/
 ├── supabase/
-│   └── migration.sql      # Schema do banco de dados
-└── .github/
-    └── workflows/
-        └── deploy.yml     # CI/CD para GitHub Pages
+│   └── migration.sql     # Schema do banco de dados
+└── .github/workflows/    # CI/CD para GitHub Pages
 ```
 
-## Primeiro Acesso
+## 🔧 Configuração
 
-1. Registre um usuário na aplicação
-2. No Supabase, vá em **Table Editor > users**
-3. Altere o campo `role` do usuário para `ADMIN`
-4. Faça logout e login novamente
+### 1. Supabase
 
-## Licença
+1. Crie um projeto em [supabase.com](https://supabase.com)
+2. Execute o SQL em `supabase/migration.sql` no SQL Editor
+3. Copie a URL e Anon Key do projeto
 
-MIT
+### 2. GitHub Secrets
+
+Configure os seguintes secrets no repositório:
+
+- `VITE_SUPABASE_URL` - URL do projeto Supabase
+- `VITE_SUPABASE_ANON_KEY` - Chave anônima do Supabase
+
+### 3. GitHub Pages
+
+Em Settings → Pages, selecione "GitHub Actions" como source.
+
+## 🌐 Deploy
+
+O deploy é automático via GitHub Actions ao fazer push na branch `main`.
+
+**URL:** https://pauloheg33.github.io/SIEDE/
+
+## 📋 Funcionalidades
+
+- ✅ Autenticação de usuários
+- ✅ Gestão de eventos (CRUD)
+- ✅ Upload de fotos e documentos
+- ✅ Controle de presença
+- ✅ Notas e observações
+- ✅ Diferentes tipos de eventos (Formação, Premiação, Encontro)
+- ✅ Controle de status (Planejado, Realizado, Arquivado)
+
+## 👥 Perfis de Usuário
+
+- **ADMIN** - Acesso total
+- **TEC_FORMACAO** - Técnico de Formação
+- **TEC_ACOMPANHAMENTO** - Técnico de Acompanhamento
