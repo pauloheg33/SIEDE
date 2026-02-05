@@ -35,14 +35,14 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  const { loadUser } = useAuthStore();
+  const { initialize } = useAuthStore();
 
   useEffect(() => {
-    loadUser();
-  }, [loadUser]);
+    initialize();
+  }, [initialize]);
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/SIEDE">
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={<Login />} />

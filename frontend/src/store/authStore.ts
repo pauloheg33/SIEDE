@@ -1,30 +1,57 @@
 import { create } from 'zustand';
 import { authAPI } from '@/lib/api';
-import type { User, LoginRequest, RegisterRequest } from '@/types';
+import { supabase } from '@/lib/supabase';
+import type { User } from '@/types';
 
 interface AuthStore {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (data: LoginRequest) => Promise<void>;
-  register: (data: RegisterRequest) => Promise<void>;
+  login: (data: { email: string; password: string }) => Promise<void>;
+  register: (data: { name: string; email: string; password: string }) => Promise<void>;
   logout: () => Promise<void>;
   loadUser: () => Promise<void>;
+  initialize: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthStore>((set) => ({
+export const useAuthStore = create<AuthStore>((set, get) => ({
   user: null,
-  isLoading: false,
+  isLoading: true,
   isAuthenticated: false,
+
+  initialize: async () => {
+    set({ isLoading: true });
+    
+    // Check for existing session
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (session) {
+      try {
+        const user = await authAPI.getUser();
+        set({ user, isAuthenticated: !!user, isLoading: false });
+      } catch {
+        set({ user: null, isAuthenticated: false, isLoading: false });
+      }
+    } else {
+      set({ user: null, isAuthenticated: false, isLoading: false });
+    }
+
+    // Listen for auth changes
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        const user = await authAPI.getUser();
+        set({ user, isAuthenticated: !!user });
+      } else if (event === 'SIGNED_OUT') {
+        set({ user: null, isAuthenticated: false });
+      }
+    });
+  },
 
   login: async (data) => {
     set({ isLoading: true });
     try {
-      const { data: tokens } = await authAPI.login(data);
-      localStorage.setItem('access_token', tokens.access_token);
-      localStorage.setItem('refresh_token', tokens.refresh_token);
-
-      const { data: user } = await authAPI.getMe();
+      await authAPI.login(data);
+      const user = await authAPI.getUser();
       set({ user, isAuthenticated: true, isLoading: false });
     } catch (error) {
       set({ isLoading: false });
@@ -36,11 +63,10 @@ export const useAuthStore = create<AuthStore>((set) => ({
     set({ isLoading: true });
     try {
       await authAPI.register(data);
-      // After registration, log in
-      await useAuthStore.getState().login({
-        email: data.email,
-        password: data.password,
-      });
+      // Auto-login after registration
+      await authAPI.login({ email: data.email, password: data.password });
+      const user = await authAPI.getUser();
+      set({ user, isAuthenticated: true, isLoading: false });
     } catch (error) {
       set({ isLoading: false });
       throw error;
@@ -53,26 +79,22 @@ export const useAuthStore = create<AuthStore>((set) => ({
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
       set({ user: null, isAuthenticated: false });
     }
   },
 
   loadUser: async () => {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
       set({ isAuthenticated: false, isLoading: false });
       return;
     }
 
     set({ isLoading: true });
     try {
-      const { data: user } = await authAPI.getMe();
-      set({ user, isAuthenticated: true, isLoading: false });
-    } catch (error) {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
+      const user = await authAPI.getUser();
+      set({ user, isAuthenticated: !!user, isLoading: false });
+    } catch {
       set({ user: null, isAuthenticated: false, isLoading: false });
     }
   },

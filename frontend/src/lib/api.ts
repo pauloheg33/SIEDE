@@ -1,143 +1,378 @@
-import axios from 'axios';
+import { supabase } from './supabase';
 import type {
   User,
   Event,
   EventFile,
   Attendance,
   EventNote,
-  LoginRequest,
-  RegisterRequest,
-  TokenResponse,
   EventCreateRequest,
   AttendanceCreateRequest,
   NoteCreateRequest,
   FileKind,
 } from '@/types';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-
-const api = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Request interceptor to add token
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-// Response interceptor to handle token refresh
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-
-      try {
-        const refreshToken = localStorage.getItem('refresh_token');
-        if (!refreshToken) {
-          throw new Error('No refresh token');
-        }
-
-        const { data } = await axios.post<TokenResponse>(`${API_URL}/auth/refresh`, {
-          refresh_token: refreshToken,
-        });
-
-        localStorage.setItem('access_token', data.access_token);
-        localStorage.setItem('refresh_token', data.refresh_token);
-
-        originalRequest.headers.Authorization = `Bearer ${data.access_token}`;
-        return api(originalRequest);
-      } catch (refreshError) {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        window.location.href = '/login';
-        return Promise.reject(refreshError);
-      }
-    }
-
-    return Promise.reject(error);
-  }
-);
-
 // Auth
 export const authAPI = {
-  register: (data: RegisterRequest) => api.post<User>('/auth/register', data),
-  login: (data: LoginRequest) => api.post<TokenResponse>('/auth/login', data),
-  logout: () => api.post('/auth/logout'),
-  getMe: () => api.get<User>('/auth/me'),
+  register: async (data: { name: string; email: string; password: string }) => {
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        data: { name: data.name },
+      },
+    });
+
+    if (authError) throw authError;
+    if (!authData.user) throw new Error('Registration failed');
+
+    // Create user profile
+    const { error: profileError } = await supabase.from('users').insert({
+      id: authData.user.id,
+      name: data.name,
+      email: data.email,
+      role: 'TEC_ACOMPANHAMENTO',
+    });
+
+    if (profileError) throw profileError;
+
+    return authData;
+  },
+
+  login: async (data: { email: string; password: string }) => {
+    const { data: authData, error } = await supabase.auth.signInWithPassword({
+      email: data.email,
+      password: data.password,
+    });
+
+    if (error) throw error;
+    return authData;
+  },
+
+  logout: async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+  },
+
+  getUser: async (): Promise<User | null> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    if (error) throw error;
+    return data as User;
+  },
+
+  getSession: () => supabase.auth.getSession(),
+  onAuthStateChange: (callback: (event: string, session: any) => void) =>
+    supabase.auth.onAuthStateChange(callback),
 };
 
 // Users
 export const usersAPI = {
-  list: () => api.get<User[]>('/users'),
-  create: (data: RegisterRequest) => api.post<User>('/users', data),
-  update: (id: string, data: Partial<User>) => api.put<User>(`/users/${id}`, data),
-  changeRole: (id: string, role: string) => api.patch<User>(`/users/${id}/role`, null, { params: { role } }),
-  deactivate: (id: string) => api.patch<User>(`/users/${id}/deactivate`),
+  list: async (): Promise<User[]> => {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data as User[];
+  },
+
+  update: async (id: string, updates: Partial<User>): Promise<User> => {
+    const { data, error } = await supabase
+      .from('users')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as User;
+  },
+
+  changeRole: async (id: string, role: string): Promise<User> => {
+    const { data, error } = await supabase
+      .from('users')
+      .update({ role })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as User;
+  },
+
+  deactivate: async (id: string): Promise<User> => {
+    const { data, error } = await supabase
+      .from('users')
+      .update({ is_active: false })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as User;
+  },
 };
 
 // Events
 export const eventsAPI = {
-  list: (params?: Record<string, any>) => api.get<Event[]>('/events', { params }),
-  get: (id: string) => api.get<Event>(`/events/${id}`),
-  create: (data: EventCreateRequest) => api.post<Event>('/events', data),
-  update: (id: string, data: Partial<EventCreateRequest>) => api.put<Event>(`/events/${id}`, data),
-  delete: (id: string) => api.delete(`/events/${id}`),
+  list: async (params?: { type?: string; status?: string; search?: string }): Promise<Event[]> => {
+    let query = supabase
+      .from('events')
+      .select('*, creator:users!created_by(*)')
+      .order('start_at', { ascending: false });
+
+    if (params?.type) query = query.eq('type', params.type);
+    if (params?.status) query = query.eq('status', params.status);
+    if (params?.search) query = query.ilike('title', `%${params.search}%`);
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return data as Event[];
+  },
+
+  get: async (id: string): Promise<Event> => {
+    const { data, error } = await supabase
+      .from('events')
+      .select('*, creator:users!created_by(*)')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    return data as Event;
+  },
+
+  create: async (eventData: EventCreateRequest): Promise<Event> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    const { data, error } = await supabase
+      .from('events')
+      .insert({ ...eventData, created_by: user.id })
+      .select('*, creator:users!created_by(*)')
+      .single();
+
+    if (error) throw error;
+    return data as Event;
+  },
+
+  update: async (id: string, eventData: Partial<EventCreateRequest>): Promise<Event> => {
+    const { data, error } = await supabase
+      .from('events')
+      .update({ ...eventData, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select('*, creator:users!created_by(*)')
+      .single();
+
+    if (error) throw error;
+    return data as Event;
+  },
+
+  delete: async (id: string): Promise<void> => {
+    const { error } = await supabase.from('events').delete().eq('id', id);
+    if (error) throw error;
+  },
 };
 
 // Files
 export const filesAPI = {
-  list: (eventId: string, kind?: FileKind) => 
-    api.get<EventFile[]>(`/events/${eventId}/files`, { params: { kind } }),
-  upload: (eventId: string, files: File[], kind: FileKind) => {
-    const formData = new FormData();
-    files.forEach((file) => formData.append('files', file));
-    return api.post<EventFile[]>(`/events/${eventId}/files`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      params: { kind },
-    });
+  list: async (eventId: string, kind?: FileKind): Promise<EventFile[]> => {
+    let query = supabase
+      .from('event_files')
+      .select('*, uploader:users!uploaded_by(*)')
+      .eq('event_id', eventId)
+      .order('created_at', { ascending: false });
+
+    if (kind) query = query.eq('kind', kind);
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return data as EventFile[];
   },
-  delete: (eventId: string, fileId: string) => api.delete(`/events/${eventId}/files/${fileId}`),
+
+  upload: async (eventId: string, files: File[], kind: FileKind): Promise<EventFile[]> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    const uploadedFiles: EventFile[] = [];
+
+    for (const file of files) {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${eventId}/${crypto.randomUUID()}.${fileExt}`;
+      const bucket = kind === 'PHOTO' ? 'photos' : 'documents';
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(fileName);
+
+      // Create thumbnail URL for photos
+      let thumbnailUrl = null;
+      if (kind === 'PHOTO') {
+        const { data: thumbData } = supabase.storage
+          .from(bucket)
+          .getPublicUrl(fileName, { transform: { width: 320, height: 320 } });
+        thumbnailUrl = thumbData.publicUrl;
+      }
+
+      // Save to database
+      const { data: fileData, error: dbError } = await supabase
+        .from('event_files')
+        .insert({
+          event_id: eventId,
+          kind,
+          filename: file.name,
+          mime: file.type,
+          size: file.size,
+          url: urlData.publicUrl,
+          thumbnail_url: thumbnailUrl,
+          uploaded_by: user.id,
+        })
+        .select('*, uploader:users!uploaded_by(*)')
+        .single();
+
+      if (dbError) throw dbError;
+      uploadedFiles.push(fileData as EventFile);
+    }
+
+    return uploadedFiles;
+  },
+
+  delete: async (eventId: string, fileId: string): Promise<void> => {
+    // Get file info first
+    const { data: file, error: fetchError } = await supabase
+      .from('event_files')
+      .select('*')
+      .eq('id', fileId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    // Delete from storage
+    const bucket = file.kind === 'PHOTO' ? 'photos' : 'documents';
+    const path = file.url.split('/').slice(-2).join('/');
+    await supabase.storage.from(bucket).remove([path]);
+
+    // Delete from database
+    const { error } = await supabase.from('event_files').delete().eq('id', fileId);
+    if (error) throw error;
+  },
 };
 
 // Attendance
 export const attendanceAPI = {
-  list: (eventId: string) => api.get<Attendance[]>(`/events/${eventId}/attendance`),
-  create: (eventId: string, data: AttendanceCreateRequest) => 
-    api.post<Attendance>(`/events/${eventId}/attendance`, data),
-  importCSV: (eventId: string, file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    return api.post(`/events/${eventId}/attendance/import`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+  list: async (eventId: string): Promise<Attendance[]> => {
+    const { data, error } = await supabase
+      .from('attendance')
+      .select('*')
+      .eq('event_id', eventId)
+      .order('person_name');
+
+    if (error) throw error;
+    return data as Attendance[];
   },
-  exportCSV: (eventId: string) => 
-    api.get(`/events/${eventId}/attendance/export/csv`, { responseType: 'blob' }),
-  exportPDF: (eventId: string) => 
-    api.get(`/events/${eventId}/attendance/export/pdf`, { responseType: 'blob' }),
-  delete: (eventId: string, attendanceId: string) => 
-    api.delete(`/events/${eventId}/attendance/${attendanceId}`),
+
+  create: async (eventId: string, attendanceData: AttendanceCreateRequest): Promise<Attendance> => {
+    const { data, error } = await supabase
+      .from('attendance')
+      .insert({ ...attendanceData, event_id: eventId })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as Attendance;
+  },
+
+  createMany: async (eventId: string, records: AttendanceCreateRequest[]): Promise<Attendance[]> => {
+    const { data, error } = await supabase
+      .from('attendance')
+      .insert(records.map(r => ({ ...r, event_id: eventId })))
+      .select();
+
+    if (error) throw error;
+    return data as Attendance[];
+  },
+
+  delete: async (eventId: string, attendanceId: string): Promise<void> => {
+    const { error } = await supabase.from('attendance').delete().eq('id', attendanceId);
+    if (error) throw error;
+  },
+
+  exportCSV: async (eventId: string): Promise<Blob> => {
+    const { data, error } = await supabase
+      .from('attendance')
+      .select('*')
+      .eq('event_id', eventId)
+      .order('person_name');
+
+    if (error) throw error;
+
+    const headers = ['Nome', 'Função', 'Escola', 'Presente'];
+    const rows = (data as Attendance[]).map(a => [
+      a.person_name,
+      a.person_role || '',
+      a.school || '',
+      a.present ? 'Sim' : 'Não',
+    ]);
+
+    const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+    return new Blob([csv], { type: 'text/csv' });
+  },
 };
 
 // Notes
 export const notesAPI = {
-  list: (eventId: string) => api.get<EventNote[]>(`/events/${eventId}/notes`),
-  create: (eventId: string, data: NoteCreateRequest) => 
-    api.post<EventNote>(`/events/${eventId}/notes`, data),
-  update: (eventId: string, noteId: string, data: NoteCreateRequest) => 
-    api.put<EventNote>(`/events/${eventId}/notes/${noteId}`, data),
-  delete: (eventId: string, noteId: string) => 
-    api.delete(`/events/${eventId}/notes/${noteId}`),
-};
+  list: async (eventId: string): Promise<EventNote[]> => {
+    const { data, error } = await supabase
+      .from('event_notes')
+      .select('*, author:users!created_by(*)')
+      .eq('event_id', eventId)
+      .order('created_at', { ascending: false });
 
-export default api;
+    if (error) throw error;
+    return data as EventNote[];
+  },
+
+  create: async (eventId: string, noteData: NoteCreateRequest): Promise<EventNote> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    const { data, error } = await supabase
+      .from('event_notes')
+      .insert({ ...noteData, event_id: eventId, created_by: user.id })
+      .select('*, author:users!created_by(*)')
+      .single();
+
+    if (error) throw error;
+    return data as EventNote;
+  },
+
+  update: async (eventId: string, noteId: string, noteData: NoteCreateRequest): Promise<EventNote> => {
+    const { data, error } = await supabase
+      .from('event_notes')
+      .update({ ...noteData, updated_at: new Date().toISOString() })
+      .eq('id', noteId)
+      .select('*, author:users!created_by(*)')
+      .single();
+
+    if (error) throw error;
+    return data as EventNote;
+  },
+
+  delete: async (eventId: string, noteId: string): Promise<void> => {
+    const { error } = await supabase.from('event_notes').delete().eq('id', noteId);
+    if (error) throw error;
+  },
+};
