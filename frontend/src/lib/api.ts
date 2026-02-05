@@ -96,7 +96,7 @@ export const usersAPI = {
     return data as User;
   },
 
-  changeRole: async (id: string, role: string): Promise<User> => {
+  changeRole: async (id: string, role: 'ADMIN' | 'TEC_FORMACAO' | 'TEC_ACOMPANHAMENTO'): Promise<User> => {
     const { data, error } = await supabase
       .from('users')
       .update({ role })
@@ -122,6 +122,9 @@ export const usersAPI = {
 };
 
 // Events
+type EventTypeFilter = 'FORMACAO' | 'PREMIACAO' | 'ENCONTRO' | 'OUTRO';
+type EventStatusFilter = 'PLANEJADO' | 'REALIZADO' | 'ARQUIVADO';
+
 export const eventsAPI = {
   list: async (params?: { type?: string; status?: string; search?: string }): Promise<Event[]> => {
     let query = supabase
@@ -129,8 +132,8 @@ export const eventsAPI = {
       .select('*, creator:users!created_by(*)')
       .order('start_at', { ascending: false });
 
-    if (params?.type) query = query.eq('type', params.type);
-    if (params?.status) query = query.eq('status', params.status);
+    if (params?.type) query = query.eq('type', params.type as EventTypeFilter);
+    if (params?.status) query = query.eq('status', params.status as EventStatusFilter);
     if (params?.search) query = query.ilike('title', `%${params.search}%`);
 
     const { data, error } = await query;
