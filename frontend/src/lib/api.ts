@@ -122,7 +122,7 @@ export const eventsAPI = {
   list: async (params?: { type?: string; status?: string; search?: string }): Promise<Event[]> => {
     let query = supabase
       .from('events')
-      .select('*, creator:users!created_by(*)')
+      .select('*')
       .order('start_at', { ascending: false });
 
     if (params?.type) query = query.eq('type', params.type as EventTypeFilter);
@@ -137,7 +137,7 @@ export const eventsAPI = {
   get: async (id: string): Promise<Event> => {
     const { data, error } = await supabase
       .from('events')
-      .select('*, creator:users!created_by(*)')
+      .select('*')
       .eq('id', id)
       .single();
 
@@ -149,10 +149,18 @@ export const eventsAPI = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
+    // Remove undefined values
+    const cleanData: Record<string, unknown> = { created_by: user.id };
+    Object.entries(eventData).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') {
+        cleanData[key] = value;
+      }
+    });
+
     const { data, error } = await supabase
       .from('events')
-      .insert({ ...eventData, created_by: user.id })
-      .select('*, creator:users!created_by(*)')
+      .insert(cleanData)
+      .select()
       .single();
 
     if (error) throw error;
@@ -160,11 +168,19 @@ export const eventsAPI = {
   },
 
   update: async (id: string, eventData: Partial<EventCreateRequest>): Promise<Event> => {
+    // Remove undefined values
+    const cleanData: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    Object.entries(eventData).forEach(([key, value]) => {
+      if (value !== undefined) {
+        cleanData[key] = value;
+      }
+    });
+
     const { data, error } = await supabase
       .from('events')
-      .update({ ...eventData, updated_at: new Date().toISOString() })
+      .update(cleanData)
       .eq('id', id)
-      .select('*, creator:users!created_by(*)')
+      .select()
       .single();
 
     if (error) throw error;
@@ -182,7 +198,7 @@ export const filesAPI = {
   list: async (eventId: string, kind?: FileKind): Promise<EventFile[]> => {
     let query = supabase
       .from('event_files')
-      .select('*, uploader:users!uploaded_by(*)')
+      .select('*')
       .eq('event_id', eventId)
       .order('created_at', { ascending: false });
 
@@ -333,7 +349,7 @@ export const notesAPI = {
   list: async (eventId: string): Promise<EventNote[]> => {
     const { data, error } = await supabase
       .from('event_notes')
-      .select('*, author:users!created_by(*)')
+      .select('*')
       .eq('event_id', eventId)
       .order('created_at', { ascending: false });
 
@@ -348,7 +364,7 @@ export const notesAPI = {
     const { data, error } = await supabase
       .from('event_notes')
       .insert({ ...noteData, event_id: eventId, created_by: user.id })
-      .select('*, author:users!created_by(*)')
+      .select()
       .single();
 
     if (error) throw error;
@@ -360,7 +376,7 @@ export const notesAPI = {
       .from('event_notes')
       .update({ ...noteData, updated_at: new Date().toISOString() })
       .eq('id', noteId)
-      .select('*, author:users!created_by(*)')
+      .select()
       .single();
 
     if (error) throw error;
