@@ -60,7 +60,7 @@ export interface EventFile {
   thumbnail_url?: string;
   uploaded_by: string;
   created_at: string;
-  uploader: User;
+  uploader?: User;
 }
 
 export interface Attendance {
@@ -80,7 +80,7 @@ export interface EventNote {
   created_by: string;
   created_at: string;
   updated_at: string;
-  author: User;
+  author?: User;
 }
 
 export interface LoginRequest {
