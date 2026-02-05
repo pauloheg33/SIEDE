@@ -3,7 +3,6 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import Layout from '@/components/Layout/Layout';
 import { eventsAPI, filesAPI, attendanceAPI, notesAPI } from '@/lib/api';
 import { Event, EventFile, Attendance, EventNote, EventType, EventStatus, FileKind } from '@/types';
-import { useAuthStore } from '@/store/authStore';
 import { 
   ArrowLeft, Edit, Trash2, Calendar, MapPin, Users, 
   Image, FileText, ClipboardList, MessageSquare, 
@@ -32,7 +31,6 @@ type TabType = 'overview' | 'photos' | 'documents' | 'attendance' | 'notes';
 export default function EventDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuthStore();
   
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
