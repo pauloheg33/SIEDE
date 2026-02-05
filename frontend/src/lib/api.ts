@@ -250,7 +250,7 @@ export const filesAPI = {
     return uploadedFiles;
   },
 
-  delete: async (eventId: string, fileId: string): Promise<void> => {
+  delete: async (_eventId: string, fileId: string): Promise<void> => {
     // Get file info first
     const { data: file, error: fetchError } = await supabase
       .from('event_files')
@@ -305,7 +305,7 @@ export const attendanceAPI = {
     return data as Attendance[];
   },
 
-  delete: async (eventId: string, attendanceId: string): Promise<void> => {
+  delete: async (_eventId: string, attendanceId: string): Promise<void> => {
     const { error } = await supabase.from('attendance').delete().eq('id', attendanceId);
     if (error) throw error;
   },
@@ -359,7 +359,7 @@ export const notesAPI = {
     return data as EventNote;
   },
 
-  update: async (eventId: string, noteId: string, noteData: NoteCreateRequest): Promise<EventNote> => {
+  update: async (_eventId: string, noteId: string, noteData: NoteCreateRequest): Promise<EventNote> => {
     const { data, error } = await supabase
       .from('event_notes')
       .update({ ...noteData, updated_at: new Date().toISOString() })
@@ -371,7 +371,7 @@ export const notesAPI = {
     return data as EventNote;
   },
 
-  delete: async (eventId: string, noteId: string): Promise<void> => {
+  delete: async (_eventId: string, noteId: string): Promise<void> => {
     const { error } = await supabase.from('event_notes').delete().eq('id', noteId);
     if (error) throw error;
   },

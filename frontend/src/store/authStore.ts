@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { authAPI } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@/types';
+import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 interface AuthStore {
   user: User | null;
@@ -14,7 +15,7 @@ interface AuthStore {
   initialize: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthStore>((set, get) => ({
+export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
   isLoading: true,
   isAuthenticated: false,
@@ -37,7 +38,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }
 
     // Listen for auth changes
-    supabase.auth.onAuthStateChange(async (event, session) => {
+    supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
       if (event === 'SIGNED_IN' && session) {
         const user = await authAPI.getUser();
         set({ user, isAuthenticated: !!user });
@@ -47,7 +48,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     });
   },
 
-  login: async (data) => {
+  login: async (data: { email: string; password: string }) => {
     set({ isLoading: true });
     try {
       await authAPI.login(data);
@@ -59,7 +60,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }
   },
 
-  register: async (data) => {
+  register: async (data: { name: string; email: string; password: string }) => {
     set({ isLoading: true });
     try {
       await authAPI.register(data);
