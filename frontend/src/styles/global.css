@@ -1,30 +1,35 @@
 :root {
-  --primary: #2563eb;
-  --primary-dark: #1d4ed8;
-  --secondary: #64748b;
-  --success: #10b981;
-  --danger: #ef4444;
-  --warning: #f59e0b;
-  --info: #3b82f6;
+  /* Cores institucionais - Ararendá */
+  --primary: #166534;
+  --primary-dark: #14532d;
+  --primary-light: #22c55e;
+  --secondary: #0f766e;
+  --accent: #ca8a04;
+  --accent-light: #fbbf24;
+  
+  --success: #16a34a;
+  --danger: #dc2626;
+  --warning: #d97706;
+  --info: #0284c7;
   
   --bg-primary: #ffffff;
-  --bg-secondary: #f8fafc;
-  --bg-tertiary: #f1f5f9;
+  --bg-secondary: #f0fdf4;
+  --bg-tertiary: #ecfdf5;
   
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-tertiary: #94a3b8;
+  --text-primary: #052e16;
+  --text-secondary: #166534;
+  --text-tertiary: #4ade80;
   
-  --border: #e2e8f0;
-  --border-light: #f1f5f9;
+  --border: #bbf7d0;
+  --border-light: #dcfce7;
   
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  --shadow-sm: 0 1px 2px 0 rgb(22 101 52 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(22 101 52 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(22 101 52 / 0.1);
   
   --radius: 8px;
-  --radius-sm: 4px;
-  --radius-lg: 12px;
+  --radius-sm: 6px;
+  --radius-lg: 16px;
 }
 
 * {

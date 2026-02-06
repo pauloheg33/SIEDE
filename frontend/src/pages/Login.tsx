@@ -32,11 +32,9 @@ export default function Login() {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <div className="auth-icon">
-            <LogIn size={32} />
-          </div>
-          <h1>Evidências SME</h1>
-          <p>Sistema de Gestão de Eventos e Evidências</p>
+          <img src="/SIEDE/logo.png" alt="Brasão Ararendá" className="auth-logo" />
+          <h1>SIEDE Ararendá</h1>
+          <p>Sistema Integrado de Evidências da Educação</p>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">

@@ -32,7 +32,13 @@ export default function Layout({ children }: LayoutProps) {
       {/* Sidebar */}
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
-          <h1 className="sidebar-title">Evidências SME</h1>
+          <div className="sidebar-brand">
+            <img src="/SIEDE/logo.png" alt="Brasão Ararendá" className="sidebar-logo" />
+            <div className="sidebar-brand-text">
+              <h1 className="sidebar-title">SIEDE</h1>
+              <span className="sidebar-subtitle">Ararendá</span>
+            </div>
+          </div>
           <button 
             className="sidebar-toggle"
             onClick={() => setSidebarOpen(false)}

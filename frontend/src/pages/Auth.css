@@ -4,7 +4,7 @@
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  background: linear-gradient(135deg, var(--primary) 0%, #1d4ed8 100%);
+  background: linear-gradient(135deg, #166534 0%, #14532d 50%, #0f766e 100%);
 }
 
 .auth-card {
@@ -13,12 +13,21 @@
   background: var(--bg-primary);
   border-radius: var(--radius-lg);
   padding: 2.5rem;
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
 
 .auth-header {
   text-align: center;
   margin-bottom: 2rem;
+}
+
+.auth-logo {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  margin-bottom: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(22, 101, 52, 0.2);
 }
 
 .auth-icon {
@@ -27,7 +36,7 @@
   justify-content: center;
   width: 64px;
   height: 64px;
-  background: rgba(37, 99, 235, 0.1);
+  background: rgba(22, 101, 52, 0.1);
   border-radius: var(--radius);
   color: var(--primary);
   margin-bottom: 1rem;

@@ -48,11 +48,9 @@ export default function Register() {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <div className="auth-icon">
-            <UserPlus size={32} />
-          </div>
+          <img src="/SIEDE/logo.png" alt="Brasão Ararendá" className="auth-logo" />
           <h1>Criar Conta</h1>
-          <p>Registre-se no sistema</p>
+          <p>Registre-se no SIEDE Ararendá</p>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
