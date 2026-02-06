@@ -6,7 +6,7 @@ import { Event, EventFile, Attendance, EventNote, EventType, EventStatus, FileKi
 import { 
   ArrowLeft, Edit, Trash2, Calendar, MapPin, Users, 
   Image, FileText, ClipboardList, MessageSquare, 
-  Upload, Download, Plus, X, Check
+  Upload, Download, Plus, X, Check, FileSpreadsheet
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -16,7 +16,7 @@ import './EventDetail.css';
 const EVENT_TYPE_LABELS: Record<EventType, string> = {
   [EventType.FORMACAO]: 'Formação',
   [EventType.PREMIACAO]: 'Premiação',
-  [EventType.ENCONTRO]: 'Encontro',
+  [EventType.ENCONTRO]: 'Visita de Acompanhamento',
   [EventType.OUTRO]: 'Outro',
 };
 
@@ -26,7 +26,7 @@ const EVENT_STATUS_LABELS: Record<EventStatus, string> = {
   [EventStatus.ARQUIVADO]: 'Arquivado',
 };
 
-type TabType = 'overview' | 'photos' | 'documents' | 'attendance' | 'notes';
+type TabType = 'overview' | 'photos' | 'report' | 'documents' | 'attendance' | 'notes';
 
 export default function EventDetail() {
   const { id } = useParams();
@@ -318,6 +318,15 @@ export default function EventDetail() {
           <Image size={18} />
           Fotos
         </button>
+        {event.type === EventType.ENCONTRO && (
+          <button 
+            className={`tab ${activeTab === 'report' ? 'active' : ''}`}
+            onClick={() => setActiveTab('report')}
+          >
+            <FileSpreadsheet size={18} />
+            Relatório
+          </button>
+        )}
         <button 
           className={`tab ${activeTab === 'documents' ? 'active' : ''}`}
           onClick={() => setActiveTab('documents')}
@@ -469,6 +478,21 @@ export default function EventDetail() {
                 <img src={selectedPhoto.url} alt={selectedPhoto.filename} />
               </div>
             )}
+          </div>
+        )}
+
+        {/* Report Tab - Only for Visita de Acompanhamento */}
+        {activeTab === 'report' && event.type === EventType.ENCONTRO && (
+          <div className="report-tab">
+            <div className="tab-header">
+              <h3>Relatório de Visita de Acompanhamento</h3>
+            </div>
+            <div className="report-placeholder">
+              <FileSpreadsheet size={48} />
+              <h4>Relatório de Acompanhamento</h4>
+              <p>Em breve você poderá preencher o relatório de acompanhamento aqui.</p>
+              <p className="text-muted">Esta funcionalidade será implementada em breve.</p>
+            </div>
           </div>
         )}
 

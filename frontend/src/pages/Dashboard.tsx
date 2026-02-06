@@ -12,7 +12,7 @@ import './Dashboard.css';
 const EVENT_TYPE_LABELS: Record<EventType, string> = {
   [EventType.FORMACAO]: 'Formação',
   [EventType.PREMIACAO]: 'Premiação',
-  [EventType.ENCONTRO]: 'Encontro',
+  [EventType.ENCONTRO]: 'Visita de Acompanhamento',
   [EventType.OUTRO]: 'Outro',
 };
 

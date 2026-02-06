@@ -134,11 +134,9 @@ create policy "Authenticated users can create events" on public.events
   for insert with check (auth.role() = 'authenticated');
 
 drop policy if exists "Creators and admins can update events" on public.events;
-create policy "Creators and admins can update events" on public.events
-  for update using (
-    created_by = auth.uid() or
-    exists (select 1 from public.users where id = auth.uid() and role = 'ADMIN')
-  );
+drop policy if exists "Authenticated users can update events" on public.events;
+create policy "Authenticated users can update events" on public.events
+  for update using (auth.role() = 'authenticated');
 
 drop policy if exists "Creators and admins can delete events" on public.events;
 create policy "Creators and admins can delete events" on public.events

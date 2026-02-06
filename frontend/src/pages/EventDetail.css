@@ -552,3 +552,42 @@
     padding: 0.5rem;
   }
 }
+
+/* Report Tab */
+.report-tab {
+  padding: 1rem 0;
+}
+
+.report-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  background: #f9fafb;
+  border: 2px dashed #d1d5db;
+  border-radius: 0.5rem;
+  text-align: center;
+  color: #6b7280;
+}
+
+.report-placeholder svg {
+  color: #166534;
+  margin-bottom: 1rem;
+}
+
+.report-placeholder h4 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 0.5rem 0;
+}
+
+.report-placeholder p {
+  margin: 0.25rem 0;
+}
+
+.report-placeholder .text-muted {
+  font-size: 0.875rem;
+  color: #9ca3af;
+}

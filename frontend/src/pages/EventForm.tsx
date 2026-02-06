@@ -10,7 +10,7 @@ import './EventForm.css';
 const EVENT_TYPES = [
   { value: EventType.FORMACAO, label: 'Formação' },
   { value: EventType.PREMIACAO, label: 'Premiação' },
-  { value: EventType.ENCONTRO, label: 'Encontro' },
+  { value: EventType.ENCONTRO, label: 'Visita de Acompanhamento' },
   { value: EventType.OUTRO, label: 'Outro' },
 ];
 
