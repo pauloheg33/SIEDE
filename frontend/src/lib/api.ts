@@ -161,7 +161,7 @@ export const eventsAPI = {
 
     const { data, error } = await supabase
       .from('events')
-      .insert(cleanData)
+      .insert(cleanData as any)
       .select()
       .single();
 
@@ -180,7 +180,7 @@ export const eventsAPI = {
 
     const { data, error } = await supabase
       .from('events')
-      .update(cleanData)
+      .update(cleanData as any)
       .eq('id', id)
       .select()
       .single();
