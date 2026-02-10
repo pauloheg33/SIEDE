@@ -151,8 +151,9 @@ export const eventsAPI = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
-    // Remove undefined values
-    const cleanData: Record<string, unknown> = { created_by: user.id };
+    // Remove undefined values - use any to bypass strict Supabase typing
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cleanData: any = { created_by: user.id };
     Object.entries(eventData).forEach(([key, value]) => {
       if (value !== undefined && value !== '') {
         cleanData[key] = value;
@@ -161,7 +162,7 @@ export const eventsAPI = {
 
     const { data, error } = await supabase
       .from('events')
-      .insert(cleanData as any)
+      .insert(cleanData)
       .select()
       .single();
 
@@ -170,8 +171,9 @@ export const eventsAPI = {
   },
 
   update: async (id: string, eventData: Partial<EventCreateRequest>): Promise<Event> => {
-    // Remove undefined values
-    const cleanData: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    // Remove undefined values - use any to bypass strict Supabase typing
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cleanData: any = { updated_at: new Date().toISOString() };
     Object.entries(eventData).forEach(([key, value]) => {
       if (value !== undefined) {
         cleanData[key] = value;
@@ -180,7 +182,7 @@ export const eventsAPI = {
 
     const { data, error } = await supabase
       .from('events')
-      .update(cleanData as any)
+      .update(cleanData)
       .eq('id', id)
       .select()
       .single();
