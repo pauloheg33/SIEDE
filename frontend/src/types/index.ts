@@ -83,6 +83,16 @@ export interface EventNote {
   author?: User;
 }
 
+export interface EventReport {
+  id: string;
+  event_id: string;
+  content: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  author?: User;
+}
+
 export interface LoginRequest {
   email: string;
   password: string;
@@ -116,4 +126,8 @@ export interface AttendanceCreateRequest {
 
 export interface NoteCreateRequest {
   text: string;
+}
+
+export interface ReportCreateRequest {
+  content: string;
 }

@@ -88,6 +88,16 @@ create table if not exists public.event_notes (
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
+-- Create event_reports table (um relatório por evento)
+create table if not exists public.event_reports (
+  id uuid default uuid_generate_v4() primary key,
+  event_id uuid references public.events(id) on delete cascade not null unique,
+  content text not null,
+  created_by uuid references public.users(id) on delete set null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
 -- Create indexes (if not exists)
 create index if not exists events_created_by_idx on public.events(created_by);
 create index if not exists events_status_idx on public.events(status);
@@ -95,6 +105,7 @@ create index if not exists events_type_idx on public.events(type);
 create index if not exists event_files_event_id_idx on public.event_files(event_id);
 create index if not exists attendance_event_id_idx on public.attendance(event_id);
 create index if not exists event_notes_event_id_idx on public.event_notes(event_id);
+create index if not exists event_reports_event_id_idx on public.event_reports(event_id);
 
 -- Enable Row Level Security
 alter table public.users enable row level security;
@@ -102,6 +113,7 @@ alter table public.events enable row level security;
 alter table public.event_files enable row level security;
 alter table public.attendance enable row level security;
 alter table public.event_notes enable row level security;
+alter table public.event_reports enable row level security;
 
 -- RLS Policies for users
 drop policy if exists "Users can view all users" on public.users;
@@ -188,6 +200,29 @@ create policy "Authors and admins can update notes" on public.event_notes
 
 drop policy if exists "Authors and admins can delete notes" on public.event_notes;
 create policy "Authors and admins can delete notes" on public.event_notes
+  for delete using (
+    created_by = auth.uid() or
+    exists (select 1 from public.users where id = auth.uid() and role = 'ADMIN')
+  );
+
+-- RLS Policies for event_reports
+drop policy if exists "Authenticated users can view reports" on public.event_reports;
+create policy "Authenticated users can view reports" on public.event_reports
+  for select using (auth.role() = 'authenticated');
+
+drop policy if exists "Authenticated users can create reports" on public.event_reports;
+create policy "Authenticated users can create reports" on public.event_reports
+  for insert with check (auth.role() = 'authenticated');
+
+drop policy if exists "Authors and admins can update reports" on public.event_reports;
+create policy "Authors and admins can update reports" on public.event_reports
+  for update using (
+    created_by = auth.uid() or
+    exists (select 1 from public.users where id = auth.uid() and role = 'ADMIN')
+  );
+
+drop policy if exists "Authors and admins can delete reports" on public.event_reports;
+create policy "Authors and admins can delete reports" on public.event_reports
   for delete using (
     created_by = auth.uid() or
     exists (select 1 from public.users where id = auth.uid() and role = 'ADMIN')

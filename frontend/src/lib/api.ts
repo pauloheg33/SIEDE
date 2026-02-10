@@ -5,9 +5,11 @@ import type {
   EventFile,
   Attendance,
   EventNote,
+  EventReport,
   EventCreateRequest,
   AttendanceCreateRequest,
   NoteCreateRequest,
+  ReportCreateRequest,
   FileKind,
 } from '@/types';
 
@@ -385,6 +387,59 @@ export const notesAPI = {
 
   delete: async (_eventId: string, noteId: string): Promise<void> => {
     const { error } = await supabase.from('event_notes').delete().eq('id', noteId);
+    if (error) throw error;
+  },
+};
+
+// Reports (Relatórios)
+export const reportsAPI = {
+  get: async (eventId: string): Promise<EventReport | null> => {
+    const { data, error } = await supabase
+      .from('event_reports')
+      .select('*, author:users!created_by(*)')
+      .eq('event_id', eventId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return null; // Not found
+      throw error;
+    }
+    return data as EventReport;
+  },
+
+  upsert: async (eventId: string, reportData: ReportCreateRequest): Promise<EventReport> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    // Check if report exists
+    const existing = await reportsAPI.get(eventId);
+
+    if (existing) {
+      // Update existing report
+      const { data, error } = await supabase
+        .from('event_reports')
+        .update({ ...reportData, updated_at: new Date().toISOString() })
+        .eq('event_id', eventId)
+        .select('*, author:users!created_by(*)')
+        .single();
+
+      if (error) throw error;
+      return data as EventReport;
+    } else {
+      // Create new report
+      const { data, error } = await supabase
+        .from('event_reports')
+        .insert({ ...reportData, event_id: eventId, created_by: user.id })
+        .select('*, author:users!created_by(*)')
+        .single();
+
+      if (error) throw error;
+      return data as EventReport;
+    }
+  },
+
+  delete: async (eventId: string): Promise<void> => {
+    const { error } = await supabase.from('event_reports').delete().eq('event_id', eventId);
     if (error) throw error;
   },
 };

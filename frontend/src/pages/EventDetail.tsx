@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import Layout from '@/components/Layout/Layout';
-import { eventsAPI, filesAPI, attendanceAPI, notesAPI } from '@/lib/api';
-import { Event, EventFile, Attendance, EventNote, EventType, EventStatus, FileKind } from '@/types';
+import { eventsAPI, filesAPI, attendanceAPI, notesAPI, reportsAPI } from '@/lib/api';
+import { Event, EventFile, Attendance, EventNote, EventReport, EventType, EventStatus, FileKind } from '@/types';
 import { 
   ArrowLeft, Edit, Trash2, Calendar, MapPin, Users, 
   Image, FileText, ClipboardList, MessageSquare, 
-  Upload, Download, Plus, X, Check, FileSpreadsheet
+  Upload, Download, Plus, X, Check, Save
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -26,7 +26,7 @@ const EVENT_STATUS_LABELS: Record<EventStatus, string> = {
   [EventStatus.ARQUIVADO]: 'Arquivado',
 };
 
-type TabType = 'overview' | 'photos' | 'report' | 'documents' | 'attendance' | 'notes';
+type TabType = 'overview' | 'photos' | 'report' | 'attendance' | 'notes';
 
 export default function EventDetail() {
   const { id } = useParams();
@@ -41,9 +41,10 @@ export default function EventDetail() {
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<EventFile | null>(null);
   
-  // Documents
-  const [documents, setDocuments] = useState<EventFile[]>([]);
-  const [uploadingDocs, setUploadingDocs] = useState(false);
+  // Report (Relatório)
+  const [report, setReport] = useState<EventReport | null>(null);
+  const [reportContent, setReportContent] = useState('');
+  const [savingReport, setSavingReport] = useState(false);
   
   // Attendance
   const [attendance, setAttendance] = useState<Attendance[]>([]);
@@ -92,9 +93,10 @@ export default function EventDetail() {
           const photosData = await filesAPI.list(id!, FileKind.PHOTO);
           setPhotos(photosData);
           break;
-        case 'documents':
-          const docsData = await filesAPI.list(id!, FileKind.DOC);
-          setDocuments(docsData);
+        case 'report':
+          const reportData = await reportsAPI.get(id!);
+          setReport(reportData);
+          setReportContent(reportData?.content || '');
           break;
         case 'attendance':
           const attendanceData = await attendanceAPI.list(id!);
@@ -153,33 +155,22 @@ export default function EventDetail() {
     }
   };
 
-  // Document handlers
-  const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files?.length) return;
-
-    try {
-      setUploadingDocs(true);
-      await filesAPI.upload(id!, Array.from(files), FileKind.DOC);
-      toast.success('Documentos enviados com sucesso!');
-      loadTabData();
-    } catch (error) {
-      toast.error('Erro ao enviar documentos');
-    } finally {
-      setUploadingDocs(false);
-      e.target.value = '';
+  // Report handlers
+  const handleSaveReport = async () => {
+    if (!reportContent.trim()) {
+      toast.error('O conteúdo do relatório é obrigatório');
+      return;
     }
-  };
 
-  const handleDeleteDoc = async (fileId: string) => {
-    if (!window.confirm('Excluir este documento?')) return;
-    
     try {
-      await filesAPI.delete(id!, fileId);
-      toast.success('Documento excluído');
-      setDocuments(documents.filter(d => d.id !== fileId));
+      setSavingReport(true);
+      const savedReport = await reportsAPI.upsert(id!, { content: reportContent });
+      setReport(savedReport);
+      toast.success('Relatório salvo com sucesso!');
     } catch (error) {
-      toast.error('Erro ao excluir documento');
+      toast.error('Erro ao salvar relatório');
+    } finally {
+      setSavingReport(false);
     }
   };
 
@@ -318,21 +309,12 @@ export default function EventDetail() {
           <Image size={18} />
           Fotos
         </button>
-        {event.type === EventType.ENCONTRO && (
-          <button 
-            className={`tab ${activeTab === 'report' ? 'active' : ''}`}
-            onClick={() => setActiveTab('report')}
-          >
-            <FileSpreadsheet size={18} />
-            Relatório
-          </button>
-        )}
         <button 
-          className={`tab ${activeTab === 'documents' ? 'active' : ''}`}
-          onClick={() => setActiveTab('documents')}
+          className={`tab ${activeTab === 'report' ? 'active' : ''}`}
+          onClick={() => setActiveTab('report')}
         >
           <FileText size={18} />
-          Documentos
+          Relatório
         </button>
         <button 
           className={`tab ${activeTab === 'attendance' ? 'active' : ''}`}
@@ -481,76 +463,39 @@ export default function EventDetail() {
           </div>
         )}
 
-        {/* Report Tab - Only for Visita de Acompanhamento */}
-        {activeTab === 'report' && event.type === EventType.ENCONTRO && (
+        {/* Report Tab - Relatório */}
+        {activeTab === 'report' && (
           <div className="report-tab">
             <div className="tab-header">
-              <h3>Relatório de Visita de Acompanhamento</h3>
+              <h3>Relatório do Evento</h3>
+              <button 
+                className="btn btn-primary"
+                onClick={handleSaveReport}
+                disabled={savingReport}
+              >
+                <Save size={18} />
+                {savingReport ? 'Salvando...' : 'Salvar Relatório'}
+              </button>
             </div>
-            <div className="report-placeholder">
-              <FileSpreadsheet size={48} />
-              <h4>Relatório de Acompanhamento</h4>
-              <p>Em breve você poderá preencher o relatório de acompanhamento aqui.</p>
-              <p className="text-muted">Esta funcionalidade será implementada em breve.</p>
+            
+            <div className="report-form">
+              <p className="report-description">
+                Descreva as informações relevantes sobre este evento, incluindo resultados, observações e quaisquer detalhes importantes.
+              </p>
+              <textarea
+                className="form-textarea report-textarea"
+                placeholder="Digite o relatório do evento aqui..."
+                value={reportContent}
+                onChange={(e) => setReportContent(e.target.value)}
+                rows={15}
+              />
+              {report && (
+                <p className="report-meta">
+                  Última atualização: {new Date(report.updated_at).toLocaleString('pt-BR')} 
+                  {report.author && ` por ${report.author.name}`}
+                </p>
+              )}
             </div>
-          </div>
-        )}
-
-        {/* Documents Tab */}
-        {activeTab === 'documents' && (
-          <div className="documents-tab">
-            <div className="tab-header">
-              <h3>Documentos</h3>
-              <label className="btn btn-primary">
-                <Upload size={18} />
-                {uploadingDocs ? 'Enviando...' : 'Enviar Documentos'}
-                <input
-                  type="file"
-                  multiple
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.png,.jpg,.jpeg"
-                  onChange={handleDocUpload}
-                  disabled={uploadingDocs}
-                  style={{ display: 'none' }}
-                />
-              </label>
-            </div>
-
-            {documents.length === 0 ? (
-              <div className="empty-state">
-                <FileText size={48} />
-                <p>Nenhum documento adicionado</p>
-              </div>
-            ) : (
-              <div className="documents-list">
-                {documents.map((doc) => (
-                  <div key={doc.id} className="document-item">
-                    <FileText size={24} />
-                    <div className="doc-info">
-                      <span className="doc-name">{doc.filename}</span>
-                      <span className="doc-meta">
-                        {formatFileSize(doc.size)} • {doc.uploader?.name || 'Usuário'}
-                      </span>
-                    </div>
-                    <div className="doc-actions">
-                      <a 
-                        href={doc.url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="btn btn-icon"
-                      >
-                        <Download size={18} />
-                      </a>
-                      <button 
-                        className="btn btn-icon btn-danger"
-                        onClick={() => handleDeleteDoc(doc.id)}
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         )}
 
