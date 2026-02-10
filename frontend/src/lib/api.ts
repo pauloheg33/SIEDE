@@ -396,7 +396,7 @@ export const reportsAPI = {
   get: async (eventId: string): Promise<EventReport | null> => {
     const { data, error } = await supabase
       .from('event_reports')
-      .select('*, author:users!created_by(*)')
+      .select('*')
       .eq('event_id', eventId)
       .single();
 
@@ -420,7 +420,7 @@ export const reportsAPI = {
         .from('event_reports')
         .update({ ...reportData, updated_at: new Date().toISOString() })
         .eq('event_id', eventId)
-        .select('*, author:users!created_by(*)')
+        .select('*')
         .single();
 
       if (error) throw error;
@@ -430,7 +430,7 @@ export const reportsAPI = {
       const { data, error } = await supabase
         .from('event_reports')
         .insert({ ...reportData, event_id: eventId, created_by: user.id })
-        .select('*, author:users!created_by(*)')
+        .select('*')
         .single();
 
       if (error) throw error;
