@@ -404,7 +404,7 @@ export const reportsAPI = {
       if (error.code === 'PGRST116') return null; // Not found
       throw error;
     }
-    return data as EventReport;
+    return data as unknown as EventReport;
   },
 
   upsert: async (eventId: string, reportData: ReportCreateRequest): Promise<EventReport> => {
@@ -424,7 +424,7 @@ export const reportsAPI = {
         .single();
 
       if (error) throw error;
-      return data as EventReport;
+      return data as unknown as EventReport;
     } else {
       // Create new report
       const { data, error } = await supabase
@@ -434,7 +434,7 @@ export const reportsAPI = {
         .single();
 
       if (error) throw error;
-      return data as EventReport;
+      return data as unknown as EventReport;
     }
   },
 
