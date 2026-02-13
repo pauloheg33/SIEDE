@@ -124,7 +124,7 @@ export const eventsAPI = {
   list: async (params?: { type?: string; status?: string; search?: string }): Promise<Event[]> => {
     let query = supabase
       .from('events')
-      .select('*')
+      .select('*, creator:users!created_by(*)')
       .order('start_at', { ascending: false });
 
     if (params?.type) query = query.eq('type', params.type as EventTypeFilter);
@@ -139,7 +139,7 @@ export const eventsAPI = {
   get: async (id: string): Promise<Event> => {
     const { data, error } = await supabase
       .from('events')
-      .select('*')
+      .select('*, creator:users!created_by(*)')
       .eq('id', id)
       .single();
 

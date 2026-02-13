@@ -161,7 +161,7 @@ export default function Dashboard() {
               </div>
 
               <div className="event-footer">
-                <span className="event-author">Por {event.creator.name}</span>
+                <span className="event-author">Por {event.creator?.name || 'Desconhecido'}</span>
               </div>
             </Link>
           ))}
