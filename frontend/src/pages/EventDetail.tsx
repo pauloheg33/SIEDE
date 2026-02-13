@@ -6,7 +6,7 @@ import { Event, EventFile, Attendance, EventNote, EventReport, EventType, EventS
 import { 
   ArrowLeft, Edit, Trash2, Calendar, MapPin, Users, 
   Image, FileText, ClipboardList, MessageSquare, 
-  Upload, Download, Plus, X, Check, Save
+  Upload, Plus, X, Check, Save, Eye, File
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -55,6 +55,9 @@ export default function EventDetail() {
     school: '',
     present: true,
   });
+  const [attendancePdfs, setAttendancePdfs] = useState<EventFile[]>([]);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+  const [previewPdf, setPreviewPdf] = useState<EventFile | null>(null);
   
   // Notes
   const [notes, setNotes] = useState<EventNote[]>([]);
@@ -101,6 +104,8 @@ export default function EventDetail() {
         case 'attendance':
           const attendanceData = await attendanceAPI.list(id!);
           setAttendance(attendanceData);
+          const pdfFiles = await filesAPI.list(id!, FileKind.DOC);
+          setAttendancePdfs(pdfFiles.filter(f => f.mime === 'application/pdf'));
           break;
         case 'notes':
           const notesData = await notesAPI.list(id!);
@@ -203,17 +208,39 @@ export default function EventDetail() {
     }
   };
 
-  const handleExportCSV = async () => {
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files?.length) return;
+
+    const file = files[0];
+    if (file.type !== 'application/pdf') {
+      toast.error('Por favor, selecione um arquivo PDF');
+      return;
+    }
+
     try {
-      const blob = await attendanceAPI.exportCSV(id!);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `frequencia-${event?.title.replace(/\s+/g, '-')}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
+      setUploadingPdf(true);
+      await filesAPI.upload(id!, [file], FileKind.DOC);
+      toast.success('PDF de frequência enviado com sucesso!');
+      loadTabData();
     } catch (error) {
-      toast.error('Erro ao exportar');
+      toast.error('Erro ao enviar PDF');
+    } finally {
+      setUploadingPdf(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleDeletePdf = async (fileId: string) => {
+    if (!window.confirm('Excluir este PDF de frequência?')) return;
+
+    try {
+      await filesAPI.delete(id!, fileId);
+      toast.success('PDF excluído');
+      setAttendancePdfs(attendancePdfs.filter(p => p.id !== fileId));
+      if (previewPdf?.id === fileId) setPreviewPdf(null);
+    } catch (error) {
+      toast.error('Erro ao excluir PDF');
     }
   };
 
@@ -499,10 +526,17 @@ export default function EventDetail() {
             <div className="tab-header">
               <h3>Lista de Presença ({attendance.length})</h3>
               <div className="header-buttons">
-                <button className="btn btn-secondary" onClick={handleExportCSV}>
-                  <Download size={18} />
-                  Exportar CSV
-                </button>
+                <label className="btn btn-secondary" style={{ cursor: 'pointer' }}>
+                  <Upload size={18} />
+                  {uploadingPdf ? 'Enviando...' : 'Importar PDF'}
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    onChange={handlePdfUpload}
+                    disabled={uploadingPdf}
+                    style={{ display: 'none' }}
+                  />
+                </label>
                 <button 
                   className="btn btn-primary"
                   onClick={() => setShowAddAttendee(true)}
@@ -555,12 +589,72 @@ export default function EventDetail() {
               </div>
             )}
 
-            {attendance.length === 0 ? (
+            {/* Uploaded PDFs */}
+            {attendancePdfs.length > 0 && (
+              <div className="attendance-pdfs">
+                <h4 className="pdf-section-title">PDFs de Frequência</h4>
+                <div className="pdf-list">
+                  {attendancePdfs.map((pdf) => (
+                    <div key={pdf.id} className="pdf-item">
+                      <div className="pdf-item-info">
+                        <File size={20} />
+                        <div className="pdf-item-details">
+                          <span className="pdf-name">{pdf.filename}</span>
+                          <span className="pdf-meta">
+                            {(pdf.size / 1024).toFixed(0)} KB &middot; {new Date(pdf.created_at).toLocaleDateString('pt-BR')}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="pdf-item-actions">
+                        <button
+                          className="btn btn-sm btn-secondary"
+                          onClick={() => setPreviewPdf(previewPdf?.id === pdf.id ? null : pdf)}
+                          title="Pré-visualizar"
+                        >
+                          <Eye size={16} />
+                          {previewPdf?.id === pdf.id ? 'Fechar' : 'Visualizar'}
+                        </button>
+                        <button
+                          className="btn btn-icon btn-danger"
+                          onClick={() => handleDeletePdf(pdf.id)}
+                          title="Excluir"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* PDF Preview */}
+                {previewPdf && (
+                  <div className="pdf-preview">
+                    <div className="pdf-preview-header">
+                      <span>{previewPdf.filename}</span>
+                      <button className="btn btn-sm btn-secondary" onClick={() => setPreviewPdf(null)}>
+                        <X size={16} />
+                        Fechar
+                      </button>
+                    </div>
+                    <iframe
+                      src={previewPdf.url}
+                      className="pdf-preview-frame"
+                      title={`Pré-visualização: ${previewPdf.filename}`}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {attendance.length === 0 && attendancePdfs.length === 0 ? (
               <div className="empty-state">
                 <ClipboardList size={48} />
                 <p>Nenhum participante registrado</p>
+                <p style={{ fontSize: '0.875rem', color: '#9ca3af', marginTop: '0.5rem' }}>
+                  Adicione participantes ou importe um PDF de frequência
+                </p>
               </div>
-            ) : (
+            ) : attendance.length > 0 ? (
               <table className="attendance-table">
                 <thead>
                   <tr>
@@ -596,7 +690,7 @@ export default function EventDetail() {
                   ))}
                 </tbody>
               </table>
-            )}
+            ) : null}
           </div>
         )}
 
